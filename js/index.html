@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku</title>
+    <style>
+        .sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 70px);
+            grid-template-rows: repeat(9, 70px);
+            gap: 2px;
+            justify-content: center;
+        }
+
+        .sudoku-cell {
+            width: 70px;
+            height: 70px;
+            font-size: 20px;
+            text-align: center;
+            border: 1px solid black;
+            box-sizing: border-box;
+        }
+
+        .sudoku-cell::placeholder {
+            font-size: 10px;
+            /* 默认占位符字体大小 */
+            color: #888;
+            /* 占位符颜色 */
+            background-color: aquamarine;
+        }
+
+        .input-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 1px solid #000;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .input-popup input {
+            margin-bottom: 10px;
+        }
+
+        .btns {
+            display: flex;
+            margin: 30px;
+            justify-content: center;
+            gap: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sudoku-grid"></div>
+    <div class="btns">
+        <button id="custom-input">Custom Input</button>
+        <button id="inference">Inference</button>
+        <button id="submit">Submit</button>
+    </div>
+
+
+    <div class="input-popup" id="input-popup">
+        <h2>Enter your Sudoku string (81 digits):</h2>
+        <input type="text" id="sudoku-input" maxlength="81">
+        <button id="submit-input">Submit</button>
+        <button id="close-popup">Close</button>
+    </div>
+
+    <script src="./sudoku.js"></script>
+    <script>
+        // 默认数独字符串
+        const defaultSudokuString = '017903600000080000900000507072010430000402070064370250701000065000030000005601720'
+        const gridContainer = document.querySelector('.sudoku-grid')
+        const customInputButton = document.getElementById('custom-input')
+        const inputPopup = document.getElementById('input-popup')
+        const submitInputButton = document.getElementById('submit-input')
+        const closePopupButton = document.getElementById('close-popup')
+        const sudokuInput = document.getElementById('sudoku-input')
+        const inferenceButton = document.getElementById('inference')
+
+        let isShow = 0
+
+        // 渲染数独表格
+        const renderSudoku = (sudoku) => {
+            gridContainer.innerHTML = '' // 清空之前的表格
+            gridContainer.style.gridTemplateColumns = `repeat(${sudoku.GRID_SIZE}, 70px)` // 不需要分号
+            gridContainer.style.gridTemplateRows = `repeat(${sudoku.GRID_SIZE}, 70px)`   // 不需要分号
+
+            const grid = sudoku.grid // 获取数独网格
+
+            grid.forEach((row, rowIndex) => {
+                row.forEach((value, colIndex) => {
+                    const cell = document.createElement('input')
+                    cell.className = 'sudoku-cell'
+                    cell.type = 'text'
+                    cell.maxLength = 1
+                    cell.value = value === 0 ? '' : value // 如果是0，显示为空
+                    cell.addEventListener('input', (e) => {
+                        const newValue = e.target.value
+                        if (!isNaN(newValue) && newValue !== '') {
+                            sudoku.grid[rowIndex][colIndex] = parseInt(newValue)
+                        } else {
+                            sudoku.grid[rowIndex][colIndex] = 0
+                        }
+                    })
+                    gridContainer.appendChild(cell)
+                })
+            })
+        }
+        const renderSudokuInference = (inference, isShow) => {
+            const cells = document.querySelectorAll('.sudoku-cell')
+            console.log(inference, isShow)
+            cells.forEach((cell, i) => {
+                if (cell.value === '') {
+                    const candidates = inference[Math.floor(i / sudoku.GRID_SIZE)][i % sudoku.GRID_SIZE]
+                    if (candidates.length === 0)
+                        cell.placeholder = !!isShow ? 'no value available' : ''
+                    else
+                        cell.placeholder = !!isShow ? candidates : ''
+                }
+            })
+        }
+
+        // 初始化数独
+        let sudoku = new Sudoku(defaultSudokuString)
+        renderSudoku(sudoku)
+
+        // 点击按钮弹出自定义输入窗口
+        customInputButton.addEventListener('click', () => {
+            inputPopup.style.display = 'block'
+        })
+
+        // 提交自定义输入
+        submitInputButton.addEventListener('click', () => {
+            const inputString = sudokuInput.value
+            try {
+                sudoku = new Sudoku(inputString)
+                renderSudoku(sudoku)
+                inputPopup.style.display = 'none'
+            } catch (error) {
+                alert('something wrong happened ' + error)
+            }
+        })
+
+        // 关闭弹窗
+        closePopupButton.addEventListener('click', () => {
+            inputPopup.style.display = 'none'
+        })
+
+        inferenceButton.addEventListener('click', () => {
+            isShow ^= 1
+            const inference = sudoku.getInference()
+            renderSudokuInference(inference, isShow)
+        });
+    </script>
+
+</body>
+
+</html>
